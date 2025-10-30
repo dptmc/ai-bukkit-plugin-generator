@@ -88,33 +88,38 @@ public class OpenRouterClient implements AiClient {
 				.header("Content-Type", "application/json")
 				.header("HTTP-Referer", "https://github.com/your-repo")
 				.header("X-Title", "Bukkit Plugin Generator")
-				.POST(HttpRequest.BodyPublishers.ofString(requestPayload))
+				.timeout(Duration.ofSeconds(120)) // Для удаленных серверов можно поставить побольше
+				.POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
 				.build();
 
 		System.out.println("-> Отправка запроса к OpenRouter (модель: " + this.model + ")...");
-		HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+		try {
+			HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-		String rawBody = response.body();
-		LoggerUtil.log(pluginName, userPrompt, rawBody);
+			String rawBody = response.body();
+			LoggerUtil.log(pluginName, userPrompt, rawBody);
 
-		if (response.statusCode() != 200) {
-			throw new IOException("OpenRouter API вернул ошибку: " + response.statusCode() + " " + rawBody);
+			if (response.statusCode() != 200) {
+				throw new IOException("OpenRouter API вернул ошибку: " + response.statusCode() + " " + rawBody);
+			}
+
+			if (rawBody == null || rawBody.trim().isEmpty()) {
+				throw new IOException("OpenRouter API вернул пустой ответ. Это может быть связано со сложностью запроса или сбоем модели. Попробуйте упростить промпт или сменить модель.");
+			}
+
+			JsonObject responseBody = gson.fromJson(rawBody, JsonObject.class);
+
+			if (responseBody == null || !responseBody.has("choices")) {
+				throw new IOException("OpenRouter API вернул некорректный JSON-ответ. Тело ответа: " + rawBody);
+			}
+
+			return responseBody.getAsJsonArray("choices")
+					.get(0).getAsJsonObject()
+					.getAsJsonObject("message")
+					.get("content").getAsString();
+		} catch (java.net.http.HttpTimeoutException e) {
+			throw new IOException("Сервер OpenRouter не ответил в течение 120 секунд. Возможно, проблемы с сетью или API перегружен.", e);
 		}
-
-		if (rawBody == null || rawBody.trim().isEmpty()) {
-			throw new IOException("OpenRouter API вернул пустой ответ. Это может быть связано со сложностью запроса или сбоем модели. Попробуйте упростить промпт или сменить модель.");
-		}
-
-		JsonObject responseBody = gson.fromJson(rawBody, JsonObject.class);
-
-		if (responseBody == null || !responseBody.has("choices")) {
-			throw new IOException("OpenRouter API вернул некорректный JSON-ответ. Тело ответа: " + rawBody);
-		}
-
-		return responseBody.getAsJsonArray("choices")
-				.get(0).getAsJsonObject()
-				.getAsJsonObject("message")
-				.get("content").getAsString();
 	}
 	
 	@Override

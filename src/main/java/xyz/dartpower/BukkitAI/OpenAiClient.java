@@ -85,30 +85,35 @@ public class OpenAiClient implements AiClient {
                 .uri(URI.create(endpoint))
                 .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "application/json")
+                .timeout(Duration.ofSeconds(60)) // <<<--- ВОТ ЭТА СТРОКА - КЛЮЧЕВАЯ
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
                 .build();
 
         System.out.println("-> Отправка запроса к OpenAI (модель: " + this.model + ", URL: " + baseUrl + ")...");
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        try {
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            String rawBody = response.body();
+            LoggerUtil.log(pluginName, userPrompt, rawBody);
 
-        String rawBody = response.body();
-        LoggerUtil.log(pluginName, userPrompt, rawBody);
+            if (response.statusCode() != 200) {
+                throw new IOException("OpenAI API вернул ошибку: " + response.statusCode() + " " + rawBody);
+            }
 
-        if (response.statusCode() != 200) {
-            throw new IOException("OpenAI API вернул ошибку: " + response.statusCode() + " " + rawBody);
+            JsonObject responseBody = gson.fromJson(rawBody, JsonObject.class);
+
+            // --- ИСПРАВЛЕНИЕ ОШИБКИ ---
+            if (responseBody == null || !responseBody.has("choices")) {
+                throw new IOException("OpenAI API вернул некорректный JSON-ответ. Тело ответа: " + rawBody);
+            }
+
+            return responseBody.getAsJsonArray("choices")
+                    .get(0).getAsJsonObject()
+                    .getAsJsonObject("message")
+                    .get("content").getAsString();
+        } catch (java.net.http.HttpTimeoutException e) {
+            // Добавляем обработку специфического исключения таймаута
+            throw new IOException("Сервер не ответил в течение 60 секунд. LM Studio可能 быть перегружен, не отвечает на запросы или выключен. Проверьте его состояние.", e);
         }
-
-        JsonObject responseBody = gson.fromJson(rawBody, JsonObject.class);
-
-        // --- ИСПРАВЛЕНИЕ ОШИБКИ ---
-        if (responseBody == null || !responseBody.has("choices")) {
-            throw new IOException("OpenAI API вернул некорректный JSON-ответ. Тело ответа: " + rawBody);
-        }
-
-        return responseBody.getAsJsonArray("choices")
-                .get(0).getAsJsonObject()
-                .getAsJsonObject("message")
-                .get("content").getAsString();
     }
 	
 	@Override
