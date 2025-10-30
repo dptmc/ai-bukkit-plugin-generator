@@ -95,6 +95,28 @@ public class OpenRouterClient implements AiClient {
 		System.out.println("-> Отправка запроса к OpenRouter (модель: " + this.model + ")...");
 		try {
 			HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+			
+			System.out.println("-> Код ответа: " + response.statusCode());
+			System.out.println("-> Заголовки ответа: " + response.headers());
+			
+			String rawBody = response.body();
+			System.out.println("-> Длина ответа: " + rawBody.length());
+			System.out.println("-> Сырой ответ (первые 200 символов): " + 
+							  (rawBody.length() > 200 ? rawBody.substring(0, 200) + "..." : rawBody));
+			
+			// Проверяем, не пустой ли ответ
+			if (rawBody == null || rawBody.trim().isEmpty()) {
+				throw new IOException("OpenRouter API вернул пустой ответ. Это может быть связано со сложностью запроса или сбоем модели.");
+			}
+			
+			// Проверяем, является ли ответ валидным JSON
+			try {
+				JsonObject responseBody = gson.fromJson(rawBody, JsonObject.class);
+			} catch (Exception e) {
+				System.err.println("Ошибка парсинга JSON: " + e.getMessage());
+				System.err.println("Ответ от сервера: " + rawBody);
+				throw e;
+			}
 
 			String rawBody = response.body();
 			LoggerUtil.log(pluginName, userPrompt, rawBody);

@@ -81,18 +81,27 @@ public class OpenAiClient implements AiClient {
 
         String endpoint = baseUrl.endsWith("/") ? baseUrl + "chat/completions" : baseUrl + "/chat/completions";
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(endpoint))
-                .header("Authorization", "Bearer " + apiKey)
-                .header("Content-Type", "application/json")
-                .timeout(Duration.ofSeconds(60)) // <<<--- ВОТ ЭТА СТРОКА - КЛЮЧЕВАЯ
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
-                .build();
+		// Увеличьте таймаут и добавьте отладочную информацию
+		HttpRequest request = HttpRequest.newBuilder()
+				.uri(URI.create(endpoint))
+				.header("Authorization", "Bearer " + apiKey)
+				.header("Content-Type", "application/json")
+				.timeout(Duration.ofSeconds(120)) // Увеличили с 60 до 120 секунд
+				.POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
+				.build();
 
-        System.out.println("-> Отправка запроса к OpenAI (модель: " + this.model + ", URL: " + baseUrl + ")...");
-        try {
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            String rawBody = response.body();
+		System.out.println("-> Отправка запроса к OpenAI (модель: " + this.model + ", URL: " + baseUrl + ")...");
+		System.out.println("-> Тело запроса: " + requestBody.toString()); // Добавьте эту строку для отладки
+
+		try {
+			HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+			System.out.println("-> Код ответа: " + response.statusCode()); // Добавьте эту строку
+			System.out.println("-> Заголовки ответа: " + response.headers()); // И эту
+			
+			String rawBody = response.body();
+			System.out.println("-> Сырой ответ (первые 200 символов): " + 
+							  (rawBody.length() > 200 ? rawBody.substring(0, 200) + "..." : rawBody)); // И эту
+
             LoggerUtil.log(pluginName, userPrompt, rawBody);
 
             if (response.statusCode() != 200) {
