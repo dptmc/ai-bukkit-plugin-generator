@@ -31,8 +31,8 @@ public class OpenAiClient implements AiClient {
     public String generatePluginCode(String userPrompt, String pluginName) throws IOException, InterruptedException {
         // Системный промпт можно оставить тем же, он универсален
         String systemPrompt = """
-		You are an expert Bukkit/Spigot plugin developer. Generate a complete, functional Bukkit plugin based on the user's request.
-		Provide the code for pom.xml, plugin.yml, and all Java classes in separate code blocks.
+You are an expert Bukkit/Spigot plugin developer. Generate a complete, functional Bukkit plugin based on the user's request.
+Provide the code for pom.xml, plugin.yml, and all Java classes in separate code blocks.
         """;
 
         JsonObject requestBody = new JsonObject();
