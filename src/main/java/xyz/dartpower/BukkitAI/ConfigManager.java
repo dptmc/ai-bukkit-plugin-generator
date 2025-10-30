@@ -21,39 +21,69 @@ public class ConfigManager {
             String content = Files.readString(CONFIG_PATH);
             Map<String, Object> data = yaml.load(content);
 
-            if (data == null || !data.containsKey("openrouter")) {
-                System.err.println("Ошибка: config.yaml имеет неверную структуру.");
+            if (data == null || !data.containsKey("active-provider")) {
+                System.err.println("Ошибка: config.yaml имеет неверную структуру (отсутствует 'active-provider').");
                 return null;
             }
 
-            Map<String, String> openrouterSettings = (Map<String, String>) data.get("openrouter");
-            String apiKey = openrouterSettings.get("api-key");
-            String model = openrouterSettings.get("model");
+            String activeProvider = (String) data.get("active-provider");
+            Map<String, String> providerSettings = (Map<String, String>) data.get(activeProvider);
+
+            if (providerSettings == null) {
+                System.err.println("Ошибка: в config.yaml отсутствуют настройки для провайдера '" + activeProvider + "'.");
+                return null;
+            }
+
+            String apiKey = providerSettings.get("api-key");
+            String model = providerSettings.get("model");
 
             if (apiKey == null || model == null) {
-                System.err.println("Ошибка: в config.yaml отсутствуют 'api-key' или 'model'.");
+                System.err.println("Ошибка: в настройках провайдера '" + activeProvider + "' отсутствуют 'api-key' или 'model'.");
                 return null;
             }
+            
+            String baseUrl = null;
+            if ("openai".equals(activeProvider)) {
+                baseUrl = providerSettings.getOrDefault("base-url", "https://api.openai.com/v1/");
+            }
 
-            return new ConfigData(apiKey, model);
+            return new ConfigData(activeProvider, apiKey, model, baseUrl);
 
-        } catch (IOException e) {
-            System.err.println("Ошибка при чтении config.yaml: " + e.getMessage());
-            return null;
-        } catch (ClassCastException e) {
-            System.err.println("Ошибка: неверный тип данных в config.yaml.");
+        } catch (IOException | ClassCastException e) {
+            System.err.println("Ошибка при чтении или парсинге config.yaml: " + e.getMessage());
             return null;
         }
     }
 
-    public void saveConfig(String apiKey, String model) throws IOException {
-        ConfigData data = new ConfigData(apiKey, model);
-        String yamlContent = yaml.dump(Map.of("openrouter", Map.of(
-                "api-key", data.apiKey(),
-                "model", data.model()
-        )));
+    public void saveConfig(ConfigData config) throws IOException {
+        Map<String, Object> data = Map.of(
+            "active-provider", config.provider(),
+            "openrouter", Map.of(
+                "api-key", config.openrouterApiKey(),
+                "model", config.openrouterModel()
+            ),
+            "openai", Map.of(
+                "api-key", config.openaiApiKey(),
+                "model", config.openaiModel(),
+                "base-url", config.openaiBaseUrl()
+            )
+        );
+        String yamlContent = yaml.dump(data);
         Files.writeString(CONFIG_PATH, yamlContent);
     }
-
-    public record ConfigData(String apiKey, String model) {}
+    
+    // Запись для хранения всех настроек
+    public record ConfigData(
+        String provider,
+        String apiKey, 
+        String model, 
+        String baseUrl,
+        
+        // Поля для сохранения всех настроек, даже неактивных
+        String openrouterApiKey,
+        String openrouterModel,
+        String openaiApiKey,
+        String openaiModel,
+        String openaiBaseUrl
+    ) {}
 }

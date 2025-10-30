@@ -9,17 +9,18 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
-public class OpenRouterClient implements AiClient {
+public class OpenAiClient implements AiClient {
 
-    private static final String API_URL = "https://openrouter.ai/api/v1/chat/completions";
     private final String apiKey;
     private final String model;
+    private final String baseUrl;
     private final Gson gson = new Gson();
     private final HttpClient httpClient;
 
-    public OpenRouterClient(String apiKey, String model) {
+    public OpenAiClient(String apiKey, String model, String baseUrl) {
         this.apiKey = apiKey;
         this.model = model;
+        this.baseUrl = baseUrl;
         this.httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_2)
                 .connectTimeout(Duration.ofSeconds(30))
@@ -28,6 +29,7 @@ public class OpenRouterClient implements AiClient {
 
     @Override
     public String generatePluginCode(String userPrompt) throws IOException, InterruptedException {
+        // Системный промпт можно оставить тем же, он универсален
         String systemPrompt = """
                 You are an expert Bukkit/Spigot plugin developer. Your task is to generate a complete, compilable, and well-structured Bukkit plugin based on the user's request.
                 
@@ -63,20 +65,20 @@ public class OpenRouterClient implements AiClient {
 
         requestBody.add("messages", gson.toJsonTree(new Object[]{systemMessage, userMessage}));
 
+        String endpoint = baseUrl.endsWith("/") ? baseUrl + "chat/completions" : baseUrl + "/chat/completions";
+
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(API_URL))
+                .uri(URI.create(endpoint))
                 .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "application/json")
-                .header("HTTP-Referer", "https://github.com/your-repo")
-                .header("X-Title", "Bukkit Plugin Generator")
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
                 .build();
 
-        System.out.println("-> Отправка запроса к OpenRouter (модель: " + this.model + ")...");
+        System.out.println("-> Отправка запроса к OpenAI (модель: " + this.model + ", URL: " + baseUrl + ")...");
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() != 200) {
-            throw new IOException("OpenRouter API вернул ошибку: " + response.statusCode() + " " + response.body());
+            throw new IOException("OpenAI API вернул ошибку: " + response.statusCode() + " " + response.body());
         }
 
         JsonObject responseBody = gson.fromJson(response.body(), JsonObject.class);

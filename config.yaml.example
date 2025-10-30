@@ -1,0 +1,12 @@
+# Активный провайдер: 'openrouter' или 'openai'
+active-provider: openrouter
+
+openrouter:
+  api-key: "sk-or-v1-..."
+  model: "meta-llama/llama-3.1-8b-instruct:free"
+
+openai:
+  api-key: "sk-..."
+  model: "gpt-3.5-turbo"
+  # base-url можно изменить для LM Studio, например: "http://localhost:1234/v1"
+  base-url: "https://api.openai.com/v1/"
