@@ -30,27 +30,75 @@ public class OpenAiClient implements AiClient {
     @Override
     public String generatePluginCode(String userPrompt) throws IOException, InterruptedException {
         // Системный промпт можно оставить тем же, он универсален
-        String systemPrompt = """
-                You are an expert Bukkit/Spigot plugin developer. Your task is to generate a complete, compilable, and well-structured Bukkit plugin based on the user's request.
-                
-                Follow these instructions strictly:
-                1.  The main class MUST be named `Main.java`.
-                2.  The package for the main class MUST be `com.example.PLUGIN_NAME`, where PLUGIN_NAME is the plugin name in lowercase.
-                3.  Provide the code for `pom.xml`, `plugin.yml`, and all Java classes in separate, clearly marked code blocks.
-                4.  Use the format:
-                    ```xml
-                    // pom.xml content here
-                    ```
-                    ```yaml
-                    // plugin.yml content here
-                    ```
-                    ```java
-                    // Java class content here
-                    ```
-                5.  The `pom.xml` must use the Spigot API dependency, version 1.20.1, and include the maven-shade-plugin for a fat jar.
-                6.  The `plugin.yml` must have `name`, `version`, `main`, and `api-version: 1.19` keys.
-                7.  Do not include any explanations or text outside of the code blocks. Only provide the raw code.
-                """;
+		String systemPrompt = """
+		You are a senior-level Bukkit/Spigot plugin developer. Your ONLY task is to write a COMPLETE, FULLY-FUNCTIONAL, and COMPILABLE Bukkit plugin based on the user's request.
+
+		CRITICAL RULES - FOLLOW THEM STRICTLY:
+
+		1.  **NO PLACEHOLDERS OR STUBS:** You are FORBIDDEN from using placeholders, comments like "// TODO", "// implement logic", "// Plugin startup logic", or any other form of incomplete code. Every method, event listener, and command executor must be fully implemented.
+
+		2.  **COMPLETE IMPLEMENTATION:** If the user asks for a command, you MUST implement the entire logic inside the `onCommand` method, including argument checks, sender type checks, permission checks, and providing feedback to the player. If they ask for an event, you MUST write the full logic inside the event handler method.
+
+		3.  **STRUCTURE:** The main class MUST be named `Main.java`. The package MUST be `com.example.PLUGIN_NAME`, where PLUGIN_NAME is the plugin name in lowercase.
+
+		4.  **OUTPUT FORMAT:** Provide the code for `pom.xml`, `plugin.yml`, and all Java classes in separate, clearly marked code blocks.
+			```xml
+			// pom.xml content here
+			```
+			```yaml
+			// plugin.yml content here
+			```
+			```java
+			// Java class content here
+			```
+
+		5.  **STANDARD FILES:**
+			-   The `pom.xml` must use the Spigot API dependency (version 1.20.1) and include the maven-shade-plugin.
+			-   The `plugin.yml` must have `name`, `version`, `main`, `api-version: 1.19`, and the correct `commands` section if commands are used.
+
+		6.  **EXAMPLE OF BAD OUTPUT (DO NOT DO THIS):**
+			```java
+			public class Main extends JavaPlugin implements CommandExecutor {
+				@Override
+				public void onEnable() {
+					// Register command
+				}
+				
+				@Override
+				public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+					// Heal the player
+					return true;
+				}
+			}
+			```
+
+		7.  **EXAMPLE OF GOOD OUTPUT (THIS IS WHAT YOU MUST DO):**
+			```java
+			public class Main extends JavaPlugin implements CommandExecutor {
+				@Override
+				public void onEnable() {
+					getServer().getPluginManager().registerEvents(this, this);
+					Objects.requireNonNull(getCommand("heal")).setExecutor(this);
+				}
+				
+				@Override
+				public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+					if (!(sender instanceof Player)) {
+						sender.sendMessage("This command can only be run by a player.");
+						return true;
+					}
+					Player player = (Player) sender;
+					player.setHealth(20);
+					player.sendMessage(ChatColor.GREEN + "You have been healed!");
+					return true;
+				}
+			}
+			```
+
+		8.  **NO EXPLANATIONS:** Do not include any explanations or text outside of the code blocks. Only provide the raw, complete code.
+
+		Before outputting, double-check that your code has NO placeholders and FULLY implements the user's request.
+		""";
 
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("model", this.model);
