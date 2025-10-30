@@ -148,7 +148,7 @@ Provide the code for pom.xml, plugin.yml, and all Java classes in separate code 
 			throw new IOException("OpenRouter API вернул некорректный JSON-ответ при запросе идеи. Тело ответа: " + rawBody);
 		}
 
-		return responseBody.getAsJsonArray("choices)
+		return responseBody.getAsJsonArray("choices")
 				.get(0).getAsJsonObject()
 				.getAsJsonObject("message")
 				.get("content").getAsString().trim();
