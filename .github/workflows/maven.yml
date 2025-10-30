@@ -37,7 +37,7 @@ jobs:
         restore-keys: ${{ runner.os }}-m2
 
     - name: Build via Maven
-      run: mvn verify -B --file pom.xml -DdisableXmlReport=true
+      run: mvn verify -B --file pom.xml
 
     - name: Upload artifact
       uses: actions/upload-artifact@v5
