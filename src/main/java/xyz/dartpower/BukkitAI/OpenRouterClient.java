@@ -97,6 +97,10 @@ public class OpenRouterClient implements AiClient {
             throw new IOException("OpenRouter API вернул ошибку: " + response.statusCode() + " " + rawBody);
         }
 
+        if (rawBody == null || rawBody.trim().isEmpty()) {
+            throw new IOException("OpenRouter API вернул пустой ответ. Это может быть связано со сложностью запроса или сбоем модели. Попробуйте упростить промпт или сменить модель.");
+        }
+
         JsonObject responseBody = gson.fromJson(rawBody, JsonObject.class);
 
         // --- ИСПРАВЛЕНИЕ ОШИБКИ ---

@@ -143,6 +143,10 @@ public class OpenAiClient implements AiClient {
 			throw new IOException("OpenAI API вернул ошибку при запросе идеи: " + response.statusCode() + " " + rawBody);
 		}
 
+		if (rawBody == null || rawBody.trim().isEmpty()) {
+			throw new IOException("OpenAI API вернул пустой ответ. Это может быть связано со сложностью запроса или сбоем модели. Попробуйте упростить промпт или сменить модель.");
+		}
+
 		JsonObject responseBody = gson.fromJson(rawBody, JsonObject.class);
 
 		// --- ИСПРАВЛЕНИЕ ОШИБКИ ---
