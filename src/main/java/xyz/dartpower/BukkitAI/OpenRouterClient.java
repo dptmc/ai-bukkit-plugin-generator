@@ -25,167 +25,164 @@ public class OpenRouterClient implements AiClient {
                 .connectTimeout(Duration.ofSeconds(30))
                 .build();
     }
-	
+    
     @Override
     public String generatePluginCode(String userPrompt, String pluginName) throws IOException, InterruptedException {
-		String systemPrompt = """
-		You are an expert Bukkit/Spigot plugin developer and a system analyst. Your task is to understand the user's intent, even if described in non-technical terms, and then write a COMPLETE, FULLY-FUNCTIONAL, and COMPILABLE Bukkit plugin.
+        String systemPrompt = """
+        You are an expert Bukkit/Spigot plugin developer and a system analyst. Your task is to understand the user's intent, even if described in non-technical terms, and then write a COMPLETE, FULLY-FUNCTIONAL, and COMPILABLE Bukkit plugin.
 
-		CRITICAL RULES - FOLLOW THEM STRICTLY:
+        CRITICAL RULES - FOLLOW THEM STRICTLY:
 
-		1.  **INTENT ANALYSIS:**
-			-   Carefully analyze the user's request to understand the core functionality they want.
-			-   Interpret the request creatively but accurately. If the user says "I want players to get a gift every day", you should implement a daily reward system with a GUI or a command. If they say "make mobs explode when they die", implement that exact event.
-			-   The language of the user's prompt determines the language for ALL in-game text (messages, descriptions, etc.). Code syntax remains in English.
+        1.  **INTENT ANALYSIS:**
+            -   Carefully analyze the user's request to understand the core functionality they want.
+            -   Interpret the request creatively but accurately. If the user says "I want players to get a gift every day", you should implement a daily reward system with a GUI or a command. If they say "make mobs explode when they die", implement that exact event.
+            -   language of the user's prompt determines the language for ALL in-game text (messages, descriptions, etc.). Code syntax remains in English.
 
-		2.  **NO PLACEHOLDERS OR STUBS:** You are FORBIDDEN from using placeholders, comments like "// TODO", "// implement logic", or any other form of incomplete code. Every method, event listener, and command executor must be fully implemented.
+        2.  **NO PLACEHOLDERS OR STUBS:** You are FORBIDDEN from using placeholders, comments like "// TODO", "// implement logic", or any other form of incomplete code. Every method, event listener, and command executor must be fully implemented.
 
-		3.  **COMPLETE IMPLEMENTATION:** If the user asks for a command, you MUST implement the entire logic inside the `onCommand` method, including argument checks, sender type checks, permission checks, and providing feedback to the player. If they ask for an event, you MUST write the full logic inside the event handler method.
+        3.  **COMPLETE IMPLEMENTATION:** If the user asks for a command, you MUST implement the entire logic inside the `onCommand` method, including argument checks, sender type checks, permission checks, and providing feedback to the player. If they ask for an event, you MUST write the full logic inside the event handler method.
 
-		4.  **STRUCTURE:** The main class MUST be named `Main.java`. The package MUST be `com.example.PLUGIN_NAME`, where PLUGIN_NAME is the plugin name in lowercase.
+        4.  **STRUCTURE:** The main class MUST be named `Main.java`. The package MUST be `com.example.PLUGIN_NAME`, where PLUGIN_NAME is the plugin name in lowercase.
 
-		5.  **OUTPUT FORMAT:** Provide the code for `pom.xml`, `plugin.yml`, and all Java classes in separate, clearly marked code blocks.
-			```xml
-			// pom.xml content here
-			```
-			```yaml
-			// plugin.yml content here
-			```
-			```java
-			// Java class content here
-			```
+        5.  **OUTPUT FORMAT:** Provide the code for `pom.xml`, `plugin.yml`, and all Java classes in separate, clearly marked code blocks.
+            ```xml
+            // pom.xml content here
+            ```
+            ```yaml
+            // plugin.yml content here
+            ```
+            ```java
+            // Java class content here
+            ```
 
-		6.  **STANDARD FILES:**
-			-   The `pom.xml` must use the Spigot API dependency (version 1.20.1) and include the maven-shade-plugin.
-			-   The `plugin.yml` must have `name`, `version`, `main`, `api-version: 1.19`, and the correct `commands` section if commands are used.
+        6.  **STANDARD FILES:**
+            -   The `pom.xml` must use the Spigot API dependency (version 1.20.1) and include the maven-shade-plugin.
+            -   The `plugin.yml` must have `name`, `version`, `main`, `api-version: 1.19`, and the correct `commands` section if commands are used.
 
-		7.  **NO EXPLANATIONS:** Do not include any explanations or text outside of the code blocks. Only provide the raw, complete code.
+        7.  **NO EXPLANATIONS:** Do not include any explanations or text outside of the code blocks. Only provide the raw, complete code.
 
-		Before outputting, double-check that your code has NO placeholders and FULLY implements the user's interpreted request.
-		""";
+        Before outputting, double-check that your code has NO placeholders and FULLY implements the user's interpreted request.
+        """;
 
-		JsonObject requestBody = new JsonObject();
-		requestBody.addProperty("model", this.model);
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("model", this.model);
 
-		JsonObject systemMessage = new JsonObject();
-		systemMessage.addProperty("role", "system");
-		systemMessage.addProperty("content", systemPrompt);
+        JsonObject systemMessage = new JsonObject();
+        systemMessage.addProperty("role", "system");
+        systemMessage.addProperty("content", systemPrompt);
 
-		JsonObject userMessage = new JsonObject();
-		userMessage.addProperty("role", "user");
-		userMessage.addProperty("content", "Generate a Bukkit plugin with the following functionality: " + userPrompt);
+        JsonObject userMessage = new JsonObject();
+        userMessage.addProperty("role", "user");
+        userMessage.addProperty("content", "Generate a Bukkit plugin with the following functionality: " + userPrompt);
 
-		requestBody.add("messages", gson.toJsonTree(new Object[]{systemMessage, userMessage}));
-		
-		String requestPayload = requestBody.toString();
-		System.out.println("\n--- DEBUG: Request Payload ---");
-		System.out.println(requestPayload);
-		System.out.println("----------------------------\n");
+        requestBody.add("messages", gson.toJsonTree(new Object[]{systemMessage, userMessage}));
+        
+        String requestPayload = requestBody.toString();
+        System.out.println("\n--- DEBUG: Request Payload ---");
+        System.out.println(requestPayload);
+        System.out.println("----------------------------\n");
 
-		HttpRequest request = HttpRequest.newBuilder()
-				.uri(URI.create("https://openrouter.ai/api/v1/chat/completions"))
-				.header("Authorization", "Bearer " + apiKey)
-				.header("Content-Type", "application/json")
-				.header("HTTP-Referer", "https://github.com/your-repo")
-				.header("X-Title", "Bukkit Plugin Generator")
-				.timeout(Duration.ofSeconds(120)) // Для удаленных серверов можно поставить побольше
-				.POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
-				.build();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://openrouter.ai/api/v1/chat/completions"))
+                .header("Authorization", "Bearer " + apiKey)
+                .header("Content-Type", "application/json")
+                .header("HTTP-Referer", "https://github.com/your-repo")
+                .header("X-Title", "Bukkit Plugin Generator")
+                .timeout(Duration.ofSeconds(120)) // Для удаленных серверов можно поставить побольше
+                .POST(HttpRequest.BodyPublishers.ofString(requestPayload))
+                .build();
 
-		System.out.println("-> Отправка запроса к OpenRouter (модель: " + this.model + ")...");
-		try {
-			HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-			
-			System.out.println("-> Код ответа: " + response.statusCode());
-			System.out.println("-> Заголовки ответа: " + response.headers());
-			
-			String rawBody = response.body();
-			System.out.println("-> Длина ответа: " + rawBody.length());
-			System.out.println("-> Сырой ответ (первые 200 символов): " + 
-							  (rawBody.length() > 200 ? rawBody.substring(0, 200) + "..." : rawBody));
-			
-			// Проверяем, не пустой ли ответ
-			if (rawBody == null || rawBody.trim().isEmpty()) {
-				throw new IOException("OpenRouter API вернул пустой ответ. Это может быть связано со сложностью запроса или сбоем модели.");
-			}
-			
-			// Проверяем, является ли ответ валидным JSON
-			try {
-				JsonObject responseBody = gson.fromJson(rawBody, JsonObject.class);
-			} catch (Exception e) {
-				System.err.println("Ошибка парсинга JSON: " + e.getMessage());
-				System.err.println("Ответ от сервера: " + rawBody);
-				throw e;
-			}
+        System.out.println("-> Отправка запроса к OpenRouter (модель: " + this.model + ")...");
+        try {
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            System.out.println("-> Код ответа: " + response.statusCode());
+            System.out.println("-> Заголовки ответа: " + response.headers());
+            
+            String rawBody = response.body();
+            System.out.println("-> Длина ответа: " + rawBody.length());
+            System.out.println("-> Сырой ответ (первые 200 символов): " + 
+                              (rawBody.length() > 200 ? rawBody.substring(0, 200) + "..." : rawBody));
+            
+            // Сохраняем лог до всех проверок
+            LoggerUtil.log(pluginName, userPrompt, rawBody);
+            
+            // Проверяем код ответа
+            if (response.statusCode() != 200) {
+                throw new IOException("OpenRouter API вернул ошибку: " + response.statusCode() + " " + rawBody);
+            }
 
-			String rawBody = response.body();
-			LoggerUtil.log(pluginName, userPrompt, rawBody);
+            // Проверяем, не пустой ли ответ
+            if (rawBody == null || rawBody.trim().isEmpty()) {
+                throw new IOException("OpenRouter API вернул пустой ответ. Это может быть связано со сложностью запроса или сбоем модели.");
+            }
+            
+            // Проверяем, является ли ответ валидным JSON
+            JsonObject responseBody;
+            try {
+                responseBody = gson.fromJson(rawBody, JsonObject.class);
+            } catch (Exception e) {
+                System.err.println("Ошибка парсинга JSON: " + e.getMessage());
+                System.err.println("Ответ от сервера: " + rawBody);
+                throw new IOException("OpenRouter API вернул невалидный JSON. " + e.getMessage(), e);
+            }
 
-			if (response.statusCode() != 200) {
-				throw new IOException("OpenRouter API вернул ошибку: " + response.statusCode() + " " + rawBody);
-			}
+            // Проверяем наличие поля choices
+            if (responseBody == null || !responseBody.has("choices")) {
+                throw new IOException("OpenRouter API вернул некорректный JSON-ответ. Тело ответа: " + rawBody);
+            }
 
-			if (rawBody == null || rawBody.trim().isEmpty()) {
-				throw new IOException("OpenRouter API вернул пустой ответ. Это может быть связано со сложностью запроса или сбоем модели. Попробуйте упростить промпт или сменить модель.");
-			}
+            return responseBody.getAsJsonArray("choices")
+                    .get(0).getAsJsonObject()
+                    .getAsJsonObject("message")
+                    .get("content").getAsString();
+        } catch (java.net.http.HttpTimeoutException e) {
+            throw new IOException("Сервер OpenRouter не ответил в течение 120 секунд. Возможно, проблемы с сетью или API перегружен.", e);
+        }
+    }
+    
+    @Override
+    public String generateRandomPluginIdea(String pluginName) throws IOException, InterruptedException {
+        String ideaPrompt = "Generate a short, creative, and interesting idea for a new Minecraft Bukkit plugin. The idea should be suitable for implementation. Respond with only the idea itself, no extra text.";
 
-			JsonObject responseBody = gson.fromJson(rawBody, JsonObject.class);
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("model", this.model);
 
-			if (responseBody == null || !responseBody.has("choices")) {
-				throw new IOException("OpenRouter API вернул некорректный JSON-ответ. Тело ответа: " + rawBody);
-			}
+        JsonObject userMessage = new JsonObject();
+        userMessage.addProperty("role", "user");
+        userMessage.addProperty("content", ideaPrompt);
 
-			return responseBody.getAsJsonArray("choices")
-					.get(0).getAsJsonObject()
-					.getAsJsonObject("message")
-					.get("content").getAsString();
-		} catch (java.net.http.HttpTimeoutException e) {
-			throw new IOException("Сервер OpenRouter не ответил в течение 120 секунд. Возможно, проблемы с сетью или API перегружен.", e);
-		}
-	}
-	
-	@Override
-	public String generateRandomPluginIdea(String pluginName) throws IOException, InterruptedException {
-		String ideaPrompt = "Generate a short, creative, and interesting idea for a new Minecraft Bukkit plugin. The idea should be suitable for implementation. Respond with only the idea itself, no extra text.";
+        requestBody.add("messages", gson.toJsonTree(new Object[]{userMessage}));
 
-		JsonObject requestBody = new JsonObject();
-		requestBody.addProperty("model", this.model);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://openrouter.ai/api/v1/chat/completions"))
+                .header("Authorization", "Bearer " + apiKey)
+                .header("Content-Type", "application/json")
+                .header("HTTP-Referer", "https://github.com/your-repo")
+                .header("X-Title", "Bukkit Plugin Generator")
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
+                .build();
 
-		JsonObject userMessage = new JsonObject();
-		userMessage.addProperty("role", "user");
-		userMessage.addProperty("content", ideaPrompt);
+        System.out.println("-> Запрос случайной идеи у OpenRouter...");
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-		requestBody.add("messages", gson.toJsonTree(new Object[]{userMessage}));
+        String rawBody = response.body();
+        LoggerUtil.log(pluginName, "Generate a random plugin idea", rawBody);
 
-		HttpRequest request = HttpRequest.newBuilder()
-				.uri(URI.create("https://openrouter.ai/api/v1/chat/completions"))
-				.header("Authorization", "Bearer " + apiKey)
-				.header("Content-Type", "application/json")
-				.header("HTTP-Referer", "https://github.com/your-repo")
-				.header("X-Title", "Bukkit Plugin Generator")
-				.POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
-				.build();
+        if (response.statusCode() != 200) {
+            throw new IOException("OpenRouter API вернул ошибку при запросе идеи: " + response.statusCode() + " " + rawBody);
+        }
 
-		System.out.println("-> Запрос случайной идеи у OpenRouter...");
-		HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        JsonObject responseBody = gson.fromJson(rawBody, JsonObject.class);
 
-		String rawBody = response.body();
-		LoggerUtil.log(pluginName, "Generate a random plugin idea", rawBody);
+        // --- ИСПРАВЛЕНИЕ ОШИБКИ ---
+        if (responseBody == null || !responseBody.has("choices")) {
+            throw new IOException("OpenRouter API вернул некорректный JSON-ответ при запросе идеи. Тело ответа: " + rawBody);
+        }
 
-		if (response.statusCode() != 200) {
-			throw new IOException("OpenRouter API вернул ошибку при запросе идеи: " + response.statusCode() + " " + rawBody);
-		}
-
-		JsonObject responseBody = gson.fromJson(rawBody, JsonObject.class);
-
-		// --- ИСПРАВЛЕНИЕ ОШИБКИ ---
-		if (responseBody == null || !responseBody.has("choices")) {
-			throw new IOException("OpenRouter API вернул некорректный JSON-ответ при запросе идеи. Тело ответа: " + rawBody);
-		}
-
-		return responseBody.getAsJsonArray("choices")
-				.get(0).getAsJsonObject()
-				.getAsJsonObject("message")
-				.get("content").getAsString().trim();
-	}
+        return responseBody.getAsJsonArray("choices")
+                .get(0).getAsJsonObject()
+                .getAsJsonObject("message")
+                .get("content").getAsString().trim();
+    }
 }
