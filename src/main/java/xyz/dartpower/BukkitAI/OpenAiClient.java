@@ -31,39 +31,8 @@ public class OpenAiClient implements AiClient {
     public String generatePluginCode(String userPrompt, String pluginName) throws IOException, InterruptedException {
         // Системный промпт можно оставить тем же, он универсален
         String systemPrompt = """
-        You are an expert Bukkit/Spigot plugin developer and a system analyst. Your task is to understand the user's intent, even if described in non-technical terms, and then write a COMPLETE, FULLY-FUNCTIONAL, and COMPILABLE Bukkit plugin.
-
-        CRITICAL RULES - FOLLOW THEM STRICTLY:
-
-        1.  **INTENT ANALYSIS:**
-            -   Carefully analyze the user's request to understand the core functionality they want.
-            -   Interpret the request creatively but accurately. If the user says "I want players to get a gift every day", you should implement a daily reward system with a GUI or a command. If they say "make mobs explode when they die", implement that exact event.
-            -   language of the user's prompt determines the language for ALL in-game text (messages, descriptions, etc.). Code syntax remains in English.
-
-        2.  **NO PLACEHOLDERS OR STUBS:** You are FORBIDDEN from using placeholders, comments like "// TODO", "// implement logic", or any other form of incomplete code. Every method, event listener, and command executor must be fully implemented.
-
-        3.  **COMPLETE IMPLEMENTATION:** If the user asks for a command, you MUST implement the entire logic inside the `onCommand` method, including argument checks, sender type checks, permission checks, and providing feedback to the player. If they ask for an event, you MUST write the full logic inside the event handler method.
-
-        4.  **STRUCTURE:** The main class MUST be named `Main.java`. The package MUST be `com.example.PLUGIN_NAME`, where PLUGIN_NAME is the plugin name in lowercase.
-
-        5.  **OUTPUT FORMAT:** Provide the code for `pom.xml`, `plugin.yml`, and all Java classes in separate, clearly marked code blocks.
-            ```xml
-            // pom.xml content here
-            ```
-            ```yaml
-            // plugin.yml content here
-            ```
-            ```java
-            // Java class content here
-            ```
-
-        6.  **STANDARD FILES:**
-            -   The `pom.xml` must use the Spigot API dependency (version 1.20.1) and include the maven-shade-plugin.
-            -   The `plugin.yml` must have `name`, `version`, `main`, `api-version: 1.19`, and the correct `commands` section if commands are used.
-
-        7.  **NO EXPLANATIONS:** Do not include any explanations or text outside of the code blocks. Only provide the raw, complete code.
-
-        Before outputting, double-check that your code has NO placeholders and FULLY implements the user's interpreted request.
+		You are an expert Bukkit/Spigot plugin developer. Generate a complete, functional Bukkit plugin based on the user's request.
+		Provide the code for pom.xml, plugin.yml, and all Java classes in separate code blocks.
         """;
 
         JsonObject requestBody = new JsonObject();
@@ -85,9 +54,9 @@ public class OpenAiClient implements AiClient {
 		HttpRequest request = HttpRequest.newBuilder()
 				.uri(URI.create(endpoint))
 				.header("Authorization", "Bearer " + apiKey)
-				.header("Content-Type", "application/json")
-				.timeout(Duration.ofSeconds(120)) // Увеличили с 60 до 120 секунд
-				.POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
+				.header("Content-Type", "application/json; charset=UTF-8")  // Добавляем кодировку
+				.timeout(Duration.ofSeconds(60))
+				.POST(HttpRequest.BodyPublishers.ofString(requestBody.toString(), java.nio.charset.StandardCharsets.UTF_8))  // Указываем кодировку
 				.build();
 
 		System.out.println("-> Отправка запроса к OpenAI (модель: " + this.model + ", URL: " + baseUrl + ")...");
@@ -143,8 +112,8 @@ public class OpenAiClient implements AiClient {
 		HttpRequest request = HttpRequest.newBuilder()
 				.uri(URI.create(endpoint))
 				.header("Authorization", "Bearer " + apiKey)
-				.header("Content-Type", "application/json")
-				.POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
+				.header("Content-Type", "application/json; charset=UTF-8")  // Добавляем кодировку
+				.POST(HttpRequest.BodyPublishers.ofString(requestBody.toString(), java.nio.charset.StandardCharsets.UTF_8))  // Указываем кодировку
 				.build();
 
 		System.out.println("-> Запрос случайной идеи у OpenAI...");

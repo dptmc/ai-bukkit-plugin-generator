@@ -6,6 +6,9 @@ import java.util.Scanner;
 public class PluginGenerator {
 
     public static void main(String[] args) {
+		System.out.println("Default Charset: " + java.nio.charset.Charset.defaultCharset());
+		System.out.println("File Encoding: " + System.getProperty("file.encoding"));
+
         Scanner scanner = new Scanner(System.in);
         ConfigManager configManager = new ConfigManager();
 
