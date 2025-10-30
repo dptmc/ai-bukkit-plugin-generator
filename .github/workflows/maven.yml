@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    paths:
+    - 'src/**'
+    - 'pom.xml'
+    - '.github/workflows/maven.yml'
+    branches: [ master ]
+
+  pull_request:
+    paths:
+    - 'src/**'
+    - 'pom.xml'
+    branches: [ master ]
+
+jobs:
+  compile:
+    name: Maven compiler
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v5
+
+    - name: Java 21 setup
+      uses: actions/setup-java@v5
+      with:
+        distribution: 'zulu'
+        java-version: '21'
+
+    - name: Cache Maven packages
+      uses: actions/cache@v5
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Build via Maven
+      run: mvn verify -B --file pom.xml -DdisableXmlReport=true
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v5
+      with:
+        path: /home/runner/work/ai-bukkit-plugin-generator/ai-bukkit-plugin-generator/target/
