@@ -17,15 +17,15 @@ public class OpenAiClient implements AiClient {
     private final Gson gson = new Gson();
     private final HttpClient httpClient;
 
-    public OpenAiClient(String apiKey, String model, String baseUrl) {
-        this.apiKey = apiKey;
-        this.model = model;
-        this.baseUrl = baseUrl;
-        this.httpClient = HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_2)
-                .connectTimeout(Duration.ofSeconds(30))
-                .build();
-    }
+	public OpenAiClient(String apiKey, String model, String baseUrl) {
+		this.apiKey = apiKey;
+		this.model = model;
+		this.baseUrl = baseUrl;
+		this.httpClient = HttpClient.newBuilder()
+				.version(HttpClient.Version.HTTP_1_1)  // Измените с HTTP_2 на HTTP_1_1
+				.connectTimeout(Duration.ofSeconds(30))
+				.build();
+	}
 
     @Override
     public String generatePluginCode(String userPrompt, String pluginName) throws IOException, InterruptedException {
@@ -148,29 +148,47 @@ public class OpenAiClient implements AiClient {
 				.build();
 
 		System.out.println("-> Запрос случайной идеи у OpenAI...");
-		HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+		System.out.println("-> URL: " + endpoint);
+		System.out.println("-> Модель: " + this.model);
 
-		String rawBody = response.body();
-		LoggerUtil.log(pluginName, "Generate a random plugin idea", rawBody);
+		try {
+			HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+			
+			System.out.println("-> Код ответа: " + response.statusCode());
+			System.out.println("-> Заголовки ответа: " + response.headers());
+			
+			String rawBody = response.body();
+			System.out.println("-> Длина ответа: " + (rawBody != null ? rawBody.length() : 0));
+			
+			if (rawBody != null && rawBody.length() > 0) {
+				System.out.println("-> Сырой ответ (первые 200 символов): " + 
+								  (rawBody.length() > 200 ? rawBody.substring(0, 200) + "..." : rawBody));
+			}
 
-		if (response.statusCode() != 200) {
-			throw new IOException("OpenAI API вернул ошибку при запросе идеи: " + response.statusCode() + " " + rawBody);
+			LoggerUtil.log(pluginName, "Generate a random plugin idea", rawBody);
+
+			if (response.statusCode() != 200) {
+				throw new IOException("OpenAI API вернул ошибку при запросе идеи: " + response.statusCode() + " " + rawBody);
+			}
+
+			if (rawBody == null || rawBody.trim().isEmpty()) {
+				throw new IOException("OpenAI API вернул пустой ответ. Это может быть связано со сложностью запроса или сбоем модели. Попробуйте упростить промпт или сменить модель.");
+			}
+
+			JsonObject responseBody = gson.fromJson(rawBody, JsonObject.class);
+
+			// --- ИСПРАВЛЕНИЕ ОШИБКИ ---
+			if (responseBody == null || !responseBody.has("choices")) {
+				throw new IOException("OpenAI API вернул некорректный JSON-ответ при запросе идеи. Тело ответа: " + rawBody);
+			}
+
+			return responseBody.getAsJsonArray("choices")
+					.get(0).getAsJsonObject()
+					.getAsJsonObject("message")
+					.get("content").getAsString().trim();
+		} catch (Exception e) {
+			System.err.println("-> Ошибка при отправке запроса: " + e.getMessage());
+			throw e;
 		}
-
-		if (rawBody == null || rawBody.trim().isEmpty()) {
-			throw new IOException("OpenAI API вернул пустой ответ. Это может быть связано со сложностью запроса или сбоем модели. Попробуйте упростить промпт или сменить модель.");
-		}
-
-		JsonObject responseBody = gson.fromJson(rawBody, JsonObject.class);
-
-		// --- ИСПРАВЛЕНИЕ ОШИБКИ ---
-		if (responseBody == null || !responseBody.has("choices")) {
-			throw new IOException("OpenAI API вернул некорректный JSON-ответ при запросе идеи. Тело ответа: " + rawBody);
-		}
-
-		return responseBody.getAsJsonArray("choices")
-				.get(0).getAsJsonObject()
-				.getAsJsonObject("message")
-				.get("content").getAsString().trim();
 	}
 }

@@ -28,7 +28,10 @@ public class OpenRouterClient implements AiClient {
     
     @Override
     public String generatePluginCode(String userPrompt, String pluginName) throws IOException, InterruptedException {
-        String systemPrompt = """
+        String systemPrompt = """You are an expert Bukkit/Spigot plugin developer. Generate a complete, functional Bukkit plugin based on the user's request.
+Provide the code for pom.xml, plugin.yml, and all Java classes in separate code blocks.""";
+
+		/*String systemPrompt = """
         You are an expert Bukkit/Spigot plugin developer and a system analyst. Your task is to understand the user's intent, even if described in non-technical terms, and then write a COMPLETE, FULLY-FUNCTIONAL, and COMPILABLE Bukkit plugin.
 
         CRITICAL RULES - FOLLOW THEM STRICTLY:
@@ -62,7 +65,7 @@ public class OpenRouterClient implements AiClient {
         7.  **NO EXPLANATIONS:** Do not include any explanations or text outside of the code blocks. Only provide the raw, complete code.
 
         Before outputting, double-check that your code has NO placeholders and FULLY implements the user's interpreted request.
-        """;
+        """;*/
 
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("model", this.model);
