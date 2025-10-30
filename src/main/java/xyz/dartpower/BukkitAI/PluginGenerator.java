@@ -26,9 +26,11 @@ public class PluginGenerator {
         String prompt;
 
         try {
+            // Создаем клиент ОДИН РАЗ до выбора режима
+            AiClient client = createClient(config);
+
             if (modeChoice.equals("2")) {
                 // 1. Запрашиваем идею у ИИ
-                AiClient client = createClient(config);
                 String aiGeneratedIdea = client.generateRandomPluginIdea();
                 
                 // 2. Предлагаем пользователю дать название на основе идеи
@@ -53,7 +55,7 @@ public class PluginGenerator {
             }
             scanner.close();
 
-            // 3. Генерируем код по финальному промпту
+            // 3. Генерируем код по финальному промпту, используя тот же клиент
             System.out.println("\n-> Начинаю генерацию кода...");
             String generatedCode = client.generatePluginCode(prompt);
             ProjectCreator creator = new ProjectCreator(".", pluginName);
