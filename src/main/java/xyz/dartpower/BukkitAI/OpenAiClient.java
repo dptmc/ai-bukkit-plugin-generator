@@ -17,15 +17,15 @@ public class OpenAiClient implements AiClient {
     private final Gson gson = new Gson();
     private final HttpClient httpClient;
 
-	public OpenAiClient(String apiKey, String model, String baseUrl) {
-		this.apiKey = apiKey;
-		this.model = model;
-		this.baseUrl = baseUrl;
-		this.httpClient = HttpClient.newBuilder()
-				.version(HttpClient.Version.HTTP_1_1)
-				.connectTimeout(Duration.ofSeconds(30))
-				.build();
-	}
+    public OpenAiClient(String apiKey, String model, String baseUrl) {
+        this.apiKey = apiKey;
+        this.model = model;
+        this.baseUrl = baseUrl;
+        this.httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(Duration.ofSeconds(30))
+                .build();
+    }
 
     @Override
     public String generatePluginCode(String userPrompt, String pluginName) throws IOException, InterruptedException {
