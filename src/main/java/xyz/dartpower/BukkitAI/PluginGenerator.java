@@ -7,19 +7,52 @@ public class PluginGenerator {
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
+        ConfigManager configManager = new ConfigManager();
 
         System.out.println("=====================================");
         System.out.println("  Генератор плагинов для Bukkit");
         System.out.println("  на базе OpenRouter API");
         System.out.println("=====================================");
 
-        System.out.print("Введите ваш API ключ от OpenRouter: ");
-        String apiKey = scanner.nextLine();
+        String apiKey;
+        String model;
 
-        if (apiKey.isEmpty() || apiKey.equals("YOUR_API_KEY")) {
-            System.err.println("Ошибка: API ключ не был предоставлен.");
-            return;
+        // --- Логика работы с конфигурацией ---
+        if (configManager.configExists()) {
+            System.out.println("-> Найден файл config.yaml. Попытка загрузить настройки...");
+            ConfigManager.ConfigData configData = configManager.loadConfig();
+
+            if (configData != null) {
+                System.out.println("   Настройки успешно загружены.");
+                System.out.print("-> Использовать сохраненные настройки? (y/n): ");
+                String choice = scanner.nextLine().trim().toLowerCase();
+                if (choice.equals("y") || choice.equals("yes")) {
+                    apiKey = configData.apiKey();
+                    model = configData.model();
+                } else {
+                    apiKey = promptForApiKey(scanner);
+                    model = promptForModel(scanner);
+                }
+            } else {
+                System.out.println("-> Не удалось загрузить настройки. Будет запрошен ввод заново.");
+                apiKey = promptForApiKey(scanner);
+                model = promptForModel(scanner);
+            }
+        } else {
+            System.out.println("-> Файл config.yaml не найден. Создадим его после ввода данных.");
+            apiKey = promptForApiKey(scanner);
+            model = promptForModel(scanner);
         }
+
+        // Сохраняем введенные настройки для будущих запусков
+        try {
+            configManager.saveConfig(apiKey, model);
+            System.out.println("-> Настройки сохранены в config.yaml.");
+        } catch (IOException e) {
+            System.err.println("   [Предупреждение] Не удалось сохранить config.yaml: " + e.getMessage());
+        }
+        // --- Конец логики работы с конфигурацией ---
+
 
         System.out.print("Введите название плагина (например, MyAwesomePlugin): ");
         String pluginName = scanner.nextLine();
@@ -29,8 +62,9 @@ public class PluginGenerator {
         scanner.close();
 
         try {
-            OpenRouterClient client = new OpenRouterClient(apiKey);
-            ProjectCreator creator = new ProjectCreator(".", pluginName); // "." - текущая директория
+            // Передаем apiKey и model в клиент
+            OpenRouterClient client = new OpenRouterClient(apiKey, model);
+            ProjectCreator creator = new ProjectCreator(".", pluginName);
 
             String generatedCode = client.generatePluginCode(prompt);
             creator.createProject(generatedCode);
@@ -43,5 +77,15 @@ public class PluginGenerator {
             System.err.println("\n❌ Произошла непредвиденная ошибка.");
             e.printStackTrace();
         }
+    }
+
+    private static String promptForApiKey(Scanner scanner) {
+        System.out.print("Введите ваш API ключ от OpenRouter: ");
+        return scanner.nextLine();
+    }
+
+    private static String promptForModel(Scanner scanner) {
+        System.out.print("Введите имя модели (например, meta-llama/llama-3.1-8b-instruct:free): ");
+        return scanner.nextLine();
     }
 }
