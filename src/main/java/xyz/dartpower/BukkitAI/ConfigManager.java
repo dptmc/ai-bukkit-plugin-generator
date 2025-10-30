@@ -27,27 +27,38 @@ public class ConfigManager {
             }
 
             String activeProvider = (String) data.get("active-provider");
-            Map<String, String> providerSettings = (Map<String, String>) data.get(activeProvider);
 
-            if (providerSettings == null) {
-                System.err.println("Ошибка: в config.yaml отсутствуют настройки для провайдера '" + activeProvider + "'.");
-                return null;
+            // Загружаем настройки для ОБЕИХ провайдеров, используя значения по умолчанию
+            Map<String, Object> orSettings = (Map<String, Object>) data.getOrDefault("openrouter", Map.of());
+            Map<String, Object> oaiSettings = (Map<String, Object>) data.getOrDefault("openai", Map.of());
+
+            String orApiKey = (String) orSettings.getOrDefault("api-key", "");
+            String orModel = (String) orSettings.getOrDefault("model", "");
+
+            String oaiApiKey = (String) oaiSettings.getOrDefault("api-key", "");
+            String oaiModel = (String) oaiSettings.getOrDefault("model", "");
+            String oaiBaseUrl = (String) oaiSettings.getOrDefault("base-url", "https://api.openai.com/v1/");
+
+            // Определяем настройки АКТИВНОГО провайдера
+            String activeApiKey = "";
+            String activeModel = "";
+            String activeBaseUrl = null;
+
+            if ("openrouter".equals(activeProvider)) {
+                activeApiKey = orApiKey;
+                activeModel = orModel;
+            } else if ("openai".equals(activeProvider)) {
+                activeApiKey = oaiApiKey;
+                activeModel = oaiModel;
+                activeBaseUrl = oaiBaseUrl;
             }
 
-            String apiKey = providerSettings.get("api-key");
-            String model = providerSettings.get("model");
-
-            if (apiKey == null || model == null) {
-                System.err.println("Ошибка: в настройках провайдера '" + activeProvider + "' отсутствуют 'api-key' или 'model'.");
-                return null;
-            }
-            
-            String baseUrl = null;
-            if ("openai".equals(activeProvider)) {
-                baseUrl = providerSettings.getOrDefault("base-url", "https://api.openai.com/v1/");
-            }
-
-            return new ConfigData(activeProvider, apiKey, model, baseUrl);
+            // Создаем объект ConfigData со ВСЕМИ 9 параметрами
+            return new ConfigData(
+                    activeProvider, activeApiKey, activeModel, activeBaseUrl,
+                    orApiKey, orModel,
+                    oaiApiKey, oaiModel, oaiBaseUrl
+            );
 
         } catch (IOException | ClassCastException e) {
             System.err.println("Ошибка при чтении или парсинге config.yaml: " + e.getMessage());
@@ -57,33 +68,33 @@ public class ConfigManager {
 
     public void saveConfig(ConfigData config) throws IOException {
         Map<String, Object> data = Map.of(
-            "active-provider", config.provider(),
-            "openrouter", Map.of(
-                "api-key", config.openrouterApiKey(),
-                "model", config.openrouterModel()
-            ),
-            "openai", Map.of(
-                "api-key", config.openaiApiKey(),
-                "model", config.openaiModel(),
-                "base-url", config.openaiBaseUrl()
-            )
+                "active-provider", config.provider(),
+                "openrouter", Map.of(
+                        "api-key", config.openrouterApiKey(),
+                        "model", config.openrouterModel()
+                ),
+                "openai", Map.of(
+                        "api-key", config.openaiApiKey(),
+                        "model", config.openaiModel(),
+                        "base-url", config.openaiBaseUrl()
+                )
         );
         String yamlContent = yaml.dump(data);
         Files.writeString(CONFIG_PATH, yamlContent);
     }
-    
+
     // Запись для хранения всех настроек
     public record ConfigData(
-        String provider,
-        String apiKey, 
-        String model, 
-        String baseUrl,
-        
-        // Поля для сохранения всех настроек, даже неактивных
-        String openrouterApiKey,
-        String openrouterModel,
-        String openaiApiKey,
-        String openaiModel,
-        String openaiBaseUrl
+            String provider,
+            String apiKey,
+            String model,
+            String baseUrl,
+
+            // Поля для сохранения всех настроек, даже неактивных
+            String openrouterApiKey,
+            String openrouterModel,
+            String openaiApiKey,
+            String openaiModel,
+            String openaiBaseUrl
     ) {}
 }
