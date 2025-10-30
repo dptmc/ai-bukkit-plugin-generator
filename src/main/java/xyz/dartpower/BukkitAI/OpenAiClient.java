@@ -28,7 +28,7 @@ public class OpenAiClient implements AiClient {
     }
 
     @Override
-    public String generatePluginCode(String userPrompt) throws IOException, InterruptedException {
+    public String generatePluginCode(String userPrompt, String pluginName) throws IOException, InterruptedException {
         // Системный промпт можно оставить тем же, он универсален
 		String systemPrompt = """
 		You are an expert Bukkit/Spigot plugin developer and a system analyst. Your task is to understand the user's intent, even if described in non-technical terms, and then write a COMPLETE, FULLY-FUNCTIONAL, and COMPILABLE Bukkit plugin.
@@ -91,11 +91,20 @@ public class OpenAiClient implements AiClient {
         System.out.println("-> Отправка запроса к OpenAI (модель: " + this.model + ", URL: " + baseUrl + ")...");
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
+        String rawBody = response.body();
+        LoggerUtil.log(pluginName, userPrompt, rawBody);
+
         if (response.statusCode() != 200) {
-            throw new IOException("OpenAI API вернул ошибку: " + response.statusCode() + " " + response.body());
+            throw new IOException("OpenAI API вернул ошибку: " + response.statusCode() + " " + rawBody);
         }
 
-        JsonObject responseBody = gson.fromJson(response.body(), JsonObject.class);
+        JsonObject responseBody = gson.fromJson(rawBody, JsonObject.class);
+
+        // --- ИСПРАВЛЕНИЕ ОШИБКИ ---
+        if (responseBody == null || !responseBody.has("choices")) {
+            throw new IOException("OpenAI API вернул некорректный JSON-ответ. Тело ответа: " + rawBody);
+        }
+
         return responseBody.getAsJsonArray("choices")
                 .get(0).getAsJsonObject()
                 .getAsJsonObject("message")
@@ -103,7 +112,7 @@ public class OpenAiClient implements AiClient {
     }
 	
 	@Override
-	public String generateRandomPluginIdea() throws IOException, InterruptedException {
+	public String generateRandomPluginIdea(String pluginName) throws IOException, InterruptedException {
 		String ideaPrompt = "Generate a short, creative, and interesting idea for a new Minecraft Bukkit plugin. The idea should be suitable for implementation. Respond with only the idea itself, no extra text.";
 
 		JsonObject requestBody = new JsonObject();
@@ -127,11 +136,20 @@ public class OpenAiClient implements AiClient {
 		System.out.println("-> Запрос случайной идеи у OpenAI...");
 		HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
+		String rawBody = response.body();
+		LoggerUtil.log(pluginName, "Generate a random plugin idea", rawBody);
+
 		if (response.statusCode() != 200) {
-			throw new IOException("OpenAI API вернул ошибку при запросе идеи: " + response.statusCode() + " " + response.body());
+			throw new IOException("OpenAI API вернул ошибку при запросе идеи: " + response.statusCode() + " " + rawBody);
 		}
 
-		JsonObject responseBody = gson.fromJson(response.body(), JsonObject.class);
+		JsonObject responseBody = gson.fromJson(rawBody, JsonObject.class);
+
+		// --- ИСПРАВЛЕНИЕ ОШИБКИ ---
+		if (responseBody == null || !responseBody.has("choices")) {
+			throw new IOException("OpenAI API вернул некорректный JSON-ответ при запросе идеи. Тело ответа: " + rawBody);
+		}
+
 		return responseBody.getAsJsonArray("choices")
 				.get(0).getAsJsonObject()
 				.getAsJsonObject("message")

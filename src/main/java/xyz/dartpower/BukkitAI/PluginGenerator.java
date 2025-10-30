@@ -26,14 +26,13 @@ public class PluginGenerator {
         String prompt;
 
         try {
-            // Создаем клиент ОДИН РАЗ до выбора режима
             AiClient client = createClient(config);
 
             if (modeChoice.equals("2")) {
-                // 1. Запрашиваем идею у ИИ
-                String aiGeneratedIdea = client.generateRandomPluginIdea();
+                // Для случайной идеи используем уникальный идентификатор
+                String ideaId = "RandomIdea_" + System.currentTimeMillis();
+                String aiGeneratedIdea = client.generateRandomPluginIdea(ideaId);
                 
-                // 2. Предлагаем пользователю дать название на основе идеи
                 System.out.println("\n-> ИИ сгенерировал идею: \"" + aiGeneratedIdea + "\"");
                 System.out.print("Введите название для этого плагина (или оставьте пустым для случайного): ");
                 String nameInput = scanner.nextLine().trim();
@@ -44,7 +43,7 @@ public class PluginGenerator {
                     pluginName = nameInput;
                 }
                 
-                prompt = aiGeneratedIdea; // Используем идею от ИИ как промпт
+                prompt = aiGeneratedIdea;
                 
             } else {
                 System.out.print("\nВведите название плагина (например, MyAwesomePlugin): ");
@@ -55,15 +54,15 @@ public class PluginGenerator {
             }
             scanner.close();
 
-            // 3. Генерируем код по финальному промпту, используя тот же клиент
             System.out.println("\n-> Начинаю генерацию кода...");
-            String generatedCode = client.generatePluginCode(prompt);
+            // Передаем pluginName в метод генерации кода
+            String generatedCode = client.generatePluginCode(prompt, pluginName);
             ProjectCreator creator = new ProjectCreator(".", pluginName);
             creator.createProject(generatedCode);
 
         } catch (IOException | InterruptedException e) {
             System.err.println("\n❌ Произошла ошибка во время генерации.");
-            System.err.println("   Убедитесь, что API ключ и URL верны и у вас есть доступ в интернет.");
+            System.err.println("   Проверьте папку 'docs' - там сохранен полный ответ от API, который поможет понять причину сбоя.");
             e.printStackTrace();
         } catch (Exception e) {
             System.err.println("\n❌ Произошла непредвиденная ошибка.");

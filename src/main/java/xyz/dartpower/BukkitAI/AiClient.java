@@ -13,7 +13,7 @@ public interface AiClient {
      * @throws IOException В случае ошибки сети или API.
      * @throws InterruptedException В случае прерывания запроса.
      */
-    String generatePluginCode(String userPrompt) throws IOException, InterruptedException;
+    String generatePluginCode(String userPrompt, String pluginName) throws IOException, InterruptedException;
 
     /**
      * Генерирует случайную идею для плагина.
@@ -21,5 +21,5 @@ public interface AiClient {
      * @throws IOException В случае ошибки сети или API.
      * @throws InterruptedException В случае прерывания запроса.
      */
-    String generateRandomPluginIdea() throws IOException, InterruptedException;
+    String generateRandomPluginIdea(String pluginName) throws IOException, InterruptedException;
 }
