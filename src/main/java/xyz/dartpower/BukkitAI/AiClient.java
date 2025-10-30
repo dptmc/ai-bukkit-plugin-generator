@@ -14,4 +14,12 @@ public interface AiClient {
      * @throws InterruptedException В случае прерывания запроса.
      */
     String generatePluginCode(String userPrompt) throws IOException, InterruptedException;
+
+    /**
+     * Генерирует случайную идею для плагина.
+     * @return Строка с описанием идеи для плагина.
+     * @throws IOException В случае ошибки сети или API.
+     * @throws InterruptedException В случае прерывания запроса.
+     */
+    String generateRandomPluginIdea() throws IOException, InterruptedException;
 }

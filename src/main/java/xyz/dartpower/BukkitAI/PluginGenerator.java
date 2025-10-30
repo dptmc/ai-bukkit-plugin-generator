@@ -16,21 +16,51 @@ public class PluginGenerator {
 
         ConfigManager.ConfigData config = promptForConfiguration(scanner, configManager);
 
-        try {
-            AiClient client = createClient(config);
-            System.out.print("Введите название плагина (например, MyAwesomePlugin): ");
-            String pluginName = scanner.nextLine();
+        System.out.println("\n--- Режим генерации ---");
+        System.out.println("1. Описать плагин самому");
+        System.out.println("2. Удиви меня (идея от ИИ)");
+        System.out.print("Выберите режим (1 или 2): ");
+        String modeChoice = scanner.nextLine().trim();
 
-            System.out.print("Опишите функционал плагина: ");
-            String prompt = scanner.nextLine();
+        String pluginName;
+        String prompt;
+
+        try {
+            if (modeChoice.equals("2")) {
+                // 1. Запрашиваем идею у ИИ
+                AiClient client = createClient(config);
+                String aiGeneratedIdea = client.generateRandomPluginIdea();
+                
+                // 2. Предлагаем пользователю дать название на основе идеи
+                System.out.println("\n-> ИИ сгенерировал идею: \"" + aiGeneratedIdea + "\"");
+                System.out.print("Введите название для этого плагина (или оставьте пустым для случайного): ");
+                String nameInput = scanner.nextLine().trim();
+                
+                if (nameInput.isEmpty()) {
+                    pluginName = "CustomPlugin" + (int)(Math.random() * 1000);
+                } else {
+                    pluginName = nameInput;
+                }
+                
+                prompt = aiGeneratedIdea; // Используем идею от ИИ как промпт
+                
+            } else {
+                System.out.print("\nВведите название плагина (например, MyAwesomePlugin): ");
+                pluginName = scanner.nextLine();
+
+                System.out.print("Опишите функционал плагина: ");
+                prompt = scanner.nextLine();
+            }
             scanner.close();
 
-            ProjectCreator creator = new ProjectCreator(".", pluginName);
+            // 3. Генерируем код по финальному промпту
+            System.out.println("\n-> Начинаю генерацию кода...");
             String generatedCode = client.generatePluginCode(prompt);
+            ProjectCreator creator = new ProjectCreator(".", pluginName);
             creator.createProject(generatedCode);
 
         } catch (IOException | InterruptedException e) {
-            System.err.println("\n❌ Произошла ошибка во время генерации проекта.");
+            System.err.println("\n❌ Произошла ошибка во время генерации.");
             System.err.println("   Убедитесь, что API ключ и URL верны и у вас есть доступ в интернет.");
             e.printStackTrace();
         } catch (Exception e) {
@@ -39,6 +69,8 @@ public class PluginGenerator {
         }
     }
 
+    // ... (остальные методы: promptForConfiguration, createClient, promptForApiKey, promptForModel) ...
+    // Они остаются без изменений, просто скопируйте их сюда
     private static ConfigManager.ConfigData promptForConfiguration(Scanner scanner, ConfigManager configManager) {
         ConfigManager.ConfigData currentConfig = null;
         if (configManager.configExists()) {
@@ -59,7 +91,6 @@ public class PluginGenerator {
             return currentConfig;
         }
 
-        // --- Запрос новых настроек ---
         System.out.println("\n--- Настройка провайдера ---");
         System.out.println("1. OpenRouter");
         System.out.println("2. OpenAI (или совместимый сервис, например LM Studio)");
@@ -87,10 +118,9 @@ public class PluginGenerator {
         } else {
             System.err.println("Неверный выбор. Выход.");
             System.exit(1);
-            return null; // Не будет достигнуто
+            return null;
         }
         
-        // Сохраняем все, чтобы не терять настройки другого провайдера
         if (currentConfig != null) {
             orApiKey = currentConfig.openrouterApiKey();
             orModel = currentConfig.openrouterModel();

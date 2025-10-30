@@ -31,17 +31,22 @@ public class OpenAiClient implements AiClient {
     public String generatePluginCode(String userPrompt) throws IOException, InterruptedException {
         // Системный промпт можно оставить тем же, он универсален
 		String systemPrompt = """
-		You are a senior-level Bukkit/Spigot plugin developer. Your ONLY task is to write a COMPLETE, FULLY-FUNCTIONAL, and COMPILABLE Bukkit plugin based on the user's request.
+		You are an expert Bukkit/Spigot plugin developer and a system analyst. Your task is to understand the user's intent, even if described in non-technical terms, and then write a COMPLETE, FULLY-FUNCTIONAL, and COMPILABLE Bukkit plugin.
 
 		CRITICAL RULES - FOLLOW THEM STRICTLY:
 
-		1.  **NO PLACEHOLDERS OR STUBS:** You are FORBIDDEN from using placeholders, comments like "// TODO", "// implement logic", "// Plugin startup logic", or any other form of incomplete code. Every method, event listener, and command executor must be fully implemented.
+		1.  **INTENT ANALYSIS:**
+			-   Carefully analyze the user's request to understand the core functionality they want.
+			-   Interpret the request creatively but accurately. If the user says "I want players to get a gift every day", you should implement a daily reward system with a GUI or a command. If they say "make mobs explode when they die", implement that exact event.
+			-   The language of the user's prompt determines the language for ALL in-game text (messages, descriptions, etc.). Code syntax remains in English.
 
-		2.  **COMPLETE IMPLEMENTATION:** If the user asks for a command, you MUST implement the entire logic inside the `onCommand` method, including argument checks, sender type checks, permission checks, and providing feedback to the player. If they ask for an event, you MUST write the full logic inside the event handler method.
+		2.  **NO PLACEHOLDERS OR STUBS:** You are FORBIDDEN from using placeholders, comments like "// TODO", "// implement logic", or any other form of incomplete code. Every method, event listener, and command executor must be fully implemented.
 
-		3.  **STRUCTURE:** The main class MUST be named `Main.java`. The package MUST be `com.example.PLUGIN_NAME`, where PLUGIN_NAME is the plugin name in lowercase.
+		3.  **COMPLETE IMPLEMENTATION:** If the user asks for a command, you MUST implement the entire logic inside the `onCommand` method, including argument checks, sender type checks, permission checks, and providing feedback to the player. If they ask for an event, you MUST write the full logic inside the event handler method.
 
-		4.  **OUTPUT FORMAT:** Provide the code for `pom.xml`, `plugin.yml`, and all Java classes in separate, clearly marked code blocks.
+		4.  **STRUCTURE:** The main class MUST be named `Main.java`. The package MUST be `com.example.PLUGIN_NAME`, where PLUGIN_NAME is the plugin name in lowercase.
+
+		5.  **OUTPUT FORMAT:** Provide the code for `pom.xml`, `plugin.yml`, and all Java classes in separate, clearly marked code blocks.
 			```xml
 			// pom.xml content here
 			```
@@ -52,52 +57,13 @@ public class OpenAiClient implements AiClient {
 			// Java class content here
 			```
 
-		5.  **STANDARD FILES:**
+		6.  **STANDARD FILES:**
 			-   The `pom.xml` must use the Spigot API dependency (version 1.20.1) and include the maven-shade-plugin.
 			-   The `plugin.yml` must have `name`, `version`, `main`, `api-version: 1.19`, and the correct `commands` section if commands are used.
 
-		6.  **EXAMPLE OF BAD OUTPUT (DO NOT DO THIS):**
-			```java
-			public class Main extends JavaPlugin implements CommandExecutor {
-				@Override
-				public void onEnable() {
-					// Register command
-				}
-				
-				@Override
-				public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-					// Heal the player
-					return true;
-				}
-			}
-			```
+		7.  **NO EXPLANATIONS:** Do not include any explanations or text outside of the code blocks. Only provide the raw, complete code.
 
-		7.  **EXAMPLE OF GOOD OUTPUT (THIS IS WHAT YOU MUST DO):**
-			```java
-			public class Main extends JavaPlugin implements CommandExecutor {
-				@Override
-				public void onEnable() {
-					getServer().getPluginManager().registerEvents(this, this);
-					Objects.requireNonNull(getCommand("heal")).setExecutor(this);
-				}
-				
-				@Override
-				public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-					if (!(sender instanceof Player)) {
-						sender.sendMessage("This command can only be run by a player.");
-						return true;
-					}
-					Player player = (Player) sender;
-					player.setHealth(20);
-					player.sendMessage(ChatColor.GREEN + "You have been healed!");
-					return true;
-				}
-			}
-			```
-
-		8.  **NO EXPLANATIONS:** Do not include any explanations or text outside of the code blocks. Only provide the raw, complete code.
-
-		Before outputting, double-check that your code has NO placeholders and FULLY implements the user's request.
+		Before outputting, double-check that your code has NO placeholders and FULLY implements the user's interpreted request.
 		""";
 
         JsonObject requestBody = new JsonObject();
@@ -135,4 +101,40 @@ public class OpenAiClient implements AiClient {
                 .getAsJsonObject("message")
                 .get("content").getAsString();
     }
+	
+	@Override
+	public String generateRandomPluginIdea() throws IOException, InterruptedException {
+		String ideaPrompt = "Generate a short, creative, and interesting idea for a new Minecraft Bukkit plugin. The idea should be suitable for implementation. Respond with only the idea itself, no extra text.";
+
+		JsonObject requestBody = new JsonObject();
+		requestBody.addProperty("model", this.model);
+
+		JsonObject userMessage = new JsonObject();
+		userMessage.addProperty("role", "user");
+		userMessage.addProperty("content", ideaPrompt);
+
+		requestBody.add("messages", gson.toJsonTree(new Object[]{userMessage}));
+
+		String endpoint = baseUrl.endsWith("/") ? baseUrl + "chat/completions" : baseUrl + "/chat/completions";
+
+		HttpRequest request = HttpRequest.newBuilder()
+				.uri(URI.create(endpoint))
+				.header("Authorization", "Bearer " + apiKey)
+				.header("Content-Type", "application/json")
+				.POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
+				.build();
+
+		System.out.println("-> Запрос случайной идеи у OpenAI...");
+		HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+		if (response.statusCode() != 200) {
+			throw new IOException("OpenAI API вернул ошибку при запросе идеи: " + response.statusCode() + " " + response.body());
+		}
+
+		JsonObject responseBody = gson.fromJson(response.body(), JsonObject.class);
+		return responseBody.getAsJsonArray("choices")
+				.get(0).getAsJsonObject()
+				.getAsJsonObject("message")
+				.get("content").getAsString().trim();
+	}
 }
