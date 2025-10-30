@@ -22,7 +22,7 @@ public class OpenAiClient implements AiClient {
 		this.model = model;
 		this.baseUrl = baseUrl;
 		this.httpClient = HttpClient.newBuilder()
-				.version(HttpClient.Version.HTTP_1_1)  // Измените с HTTP_2 на HTTP_1_1
+				.version(HttpClient.Version.HTTP_1_1)
 				.connectTimeout(Duration.ofSeconds(30))
 				.build();
 	}
