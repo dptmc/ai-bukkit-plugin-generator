@@ -6,13 +6,13 @@ on:
     - 'src/**'
     - 'pom.xml'
     - '.github/workflows/maven.yml'
-    branches: [ master ]
+    branches: [ main ]
 
   pull_request:
     paths:
     - 'src/**'
     - 'pom.xml'
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   compile:
