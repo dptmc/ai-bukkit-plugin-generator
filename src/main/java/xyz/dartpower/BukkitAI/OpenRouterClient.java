@@ -64,56 +64,58 @@ public class OpenRouterClient implements AiClient {
 		Before outputting, double-check that your code has NO placeholders and FULLY implements the user's interpreted request.
 		""";
 
-        JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("model", this.model);
+		JsonObject requestBody = new JsonObject();
+		requestBody.addProperty("model", this.model);
 
-        JsonObject systemMessage = new JsonObject();
-        systemMessage.addProperty("role", "system");
-        systemMessage.addProperty("content", systemPrompt);
+		JsonObject systemMessage = new JsonObject();
+		systemMessage.addProperty("role", "system");
+		systemMessage.addProperty("content", systemPrompt);
 
-        JsonObject userMessage = new JsonObject();
-        userMessage.addProperty("role", "user");
-        userMessage.addProperty("content", "Generate a Bukkit plugin with the following functionality: " + userPrompt);
+		JsonObject userMessage = new JsonObject();
+		userMessage.addProperty("role", "user");
+		userMessage.addProperty("content", "Generate a Bukkit plugin with the following functionality: " + userPrompt);
 
-        requestBody.add("messages", gson.toJsonTree(new Object[]{systemMessage, userMessage}));
+		requestBody.add("messages", gson.toJsonTree(new Object[]{systemMessage, userMessage}));
+		
+		String requestPayload = requestBody.toString();
+		System.out.println("\n--- DEBUG: Request Payload ---");
+		System.out.println(requestPayload);
+		System.out.println("----------------------------\n");
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(API_URL))
-                .header("Authorization", "Bearer " + apiKey)
-                .header("Content-Type", "application/json")
-                .header("HTTP-Referer", "https://github.com/your-repo")
-                .header("X-Title", "Bukkit Plugin Generator")
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
-                .build();
+		HttpRequest request = HttpRequest.newBuilder()
+				.uri(URI.create("https://openrouter.ai/api/v1/chat/completions"))
+				.header("Authorization", "Bearer " + apiKey)
+				.header("Content-Type", "application/json")
+				.header("HTTP-Referer", "https://github.com/your-repo")
+				.header("X-Title", "Bukkit Plugin Generator")
+				.POST(HttpRequest.BodyPublishers.ofString(requestPayload))
+				.build();
 
-        System.out.println("-> Отправка запроса к OpenRouter (модель: " + this.model + ")...");
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+		System.out.println("-> Отправка запроса к OpenRouter (модель: " + this.model + ")...");
+		HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-        String rawBody = response.body();
-        // Логируем ВЕСЬ ответ, до любой обработки
-        LoggerUtil.log(pluginName, userPrompt, rawBody);
+		String rawBody = response.body();
+		LoggerUtil.log(pluginName, userPrompt, rawBody);
 
-        if (response.statusCode() != 200) {
-            throw new IOException("OpenRouter API вернул ошибку: " + response.statusCode() + " " + rawBody);
-        }
+		if (response.statusCode() != 200) {
+			throw new IOException("OpenRouter API вернул ошибку: " + response.statusCode() + " " + rawBody);
+		}
 
-        if (rawBody == null || rawBody.trim().isEmpty()) {
-            throw new IOException("OpenRouter API вернул пустой ответ. Это может быть связано со сложностью запроса или сбоем модели. Попробуйте упростить промпт или сменить модель.");
-        }
+		if (rawBody == null || rawBody.trim().isEmpty()) {
+			throw new IOException("OpenRouter API вернул пустой ответ. Это может быть связано со сложностью запроса или сбоем модели. Попробуйте упростить промпт или сменить модель.");
+		}
 
-        JsonObject responseBody = gson.fromJson(rawBody, JsonObject.class);
+		JsonObject responseBody = gson.fromJson(rawBody, JsonObject.class);
 
-        // --- ИСПРАВЛЕНИЕ ОШИБКИ ---
-        // Проверяем, что JSON не null и содержит нужное поле
-        if (responseBody == null || !responseBody.has("choices")) {
-            throw new IOException("OpenRouter API вернул некорректный JSON-ответ. Тело ответа: " + rawBody);
-        }
+		if (responseBody == null || !responseBody.has("choices")) {
+			throw new IOException("OpenRouter API вернул некорректный JSON-ответ. Тело ответа: " + rawBody);
+		}
 
-        return responseBody.getAsJsonArray("choices")
-                .get(0).getAsJsonObject()
-                .getAsJsonObject("message")
-                .get("content").getAsString();
-    }
+		return responseBody.getAsJsonArray("choices")
+				.get(0).getAsJsonObject()
+				.getAsJsonObject("message")
+				.get("content").getAsString();
+	}
 	
 	@Override
 	public String generateRandomPluginIdea(String pluginName) throws IOException, InterruptedException {
